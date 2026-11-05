@@ -53,9 +53,20 @@ def load_config():
     # 3. Parse OpenAPI data if loaded (from URL or local docs file)
     if openapi_data:
         servers = openapi_data.get("servers", [])
-        base_url = (
+        server_url = (
             servers[0].get("url", "") if servers else openapi_data.get("base_url", "")
         )
+
+        # Handle relative or empty server URLs (e.g., servers: [{"url": "/api/v3"}])
+        if server_url.startswith("http://") or server_url.startswith("https://"):
+            base_url = server_url
+        elif openapi_source.startswith("http://") or openapi_source.startswith("https://"):
+            from urllib.parse import urlparse
+            parsed_src = urlparse(openapi_source)
+            origin = f"{parsed_src.scheme}://{parsed_src.netloc}"
+            base_url = f"{origin.rstrip('/')}/{server_url.lstrip('/')}" if server_url else origin
+        else:
+            base_url = server_url
 
         paths = openapi_data.get("paths", {})
         for path, methods in paths.items():
@@ -65,8 +76,9 @@ def load_config():
                         path.replace("{petId}", "1")
                         .replace("{orderId}", "1")
                         .replace("{userId}", "1")
+                        .replace("{username}", "user1")
                     )
-                    full_url = base_url.rstrip("/") + formatted_path
+                    full_url = base_url.rstrip("/") + "/" + formatted_path.lstrip("/")
 
                     responses = details.get("responses", {})
                     expected_status = 201 if "201" in responses else 200
@@ -143,9 +155,11 @@ def log_result(result):
                 [
                     "Timestamp",
                     "API Name",
+                    "Method",
                     "URL",
                     "Status",
                     "Response Time (ms)",
+                    "Response Body",
                     "Error",
                 ]
             )
@@ -153,15 +167,19 @@ def log_result(result):
             [
                 result["timestamp"],
                 result["name"],
+                result["method"],
                 result["url"],
                 result["status"],
                 result["response_time_ms"],
+                result["response_body"],
                 result["error"],
             ]
         )
 
 
 def generate_html_report():
+    import html as html_lib
+
     if not os.path.exists(CSV_REPORT):
         return
 
@@ -171,13 +189,20 @@ def generate_html_report():
     <head>
         <title>API Monitoring Report</title>
         <style>
-            body { font-family: Arial, sans-serif; margin: 20px; background: #f4f4f9; }
-            h2 { color: #333; }
-            table { width: 100%; border-collapse: collapse; background: white; }
-            th, td { padding: 10px; border: 1px solid #ddd; text-align: left; }
-            th { background-color: #007bff; color: white; }
-            .success { color: green; font-weight: bold; }
-            .failure { color: red; font-weight: bold; }
+            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; margin: 20px; background: #f4f4f9; color: #333; }
+            h2 { color: #222; }
+            table { width: 100%; border-collapse: collapse; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+            th, td { padding: 10px; border: 1px solid #ddd; text-align: left; vertical-align: top; }
+            th { background-color: #007bff; color: white; font-size: 14px; }
+            .success { color: #28a745; font-weight: bold; }
+            .failure { color: #dc3545; font-weight: bold; }
+            .badge { display: inline-block; padding: 3px 7px; border-radius: 4px; font-weight: bold; font-size: 11px; font-family: monospace; }
+            .badge-get { background: #e3f2fd; color: #0d47a1; }
+            .badge-post { background: #e8f5e9; color: #1b5e20; }
+            .badge-put { background: #fff3e0; color: #e65100; }
+            .badge-delete { background: #ffebee; color: #b71c1c; }
+            .badge-patch { background: #f3e5f5; color: #4a148c; }
+            .response-box { max-height: 120px; max-width: 380px; overflow-y: auto; background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 4px; padding: 6px; font-family: monospace; font-size: 11px; white-space: pre-wrap; word-break: break-all; }
         </style>
     </head>
     <body>
@@ -186,11 +211,13 @@ def generate_html_report():
         + """</h2>
         <table>
             <tr>
-                <th>Timestamp</th>
+                <th style="width: 130px;">Timestamp</th>
                 <th>API Name</th>
+                <th style="width: 80px;">Method</th>
                 <th>URL</th>
-                <th>Status</th>
-                <th>Response Time (ms)</th>
+                <th style="width: 140px;">Status</th>
+                <th style="width: 90px;">Latency</th>
+                <th style="width: 380px;">Response Body</th>
                 <th>Error Details</th>
             </tr>
     """
@@ -198,19 +225,51 @@ def generate_html_report():
 
     with open(CSV_REPORT, mode="r", encoding="utf-8") as f:
         reader = csv.reader(f)
-        next(reader)  # Skip header
+        header = next(reader, None)  # Skip header
         for row in reader:
+            if not row:
+                continue
+            # Backward compatibility check for 6-column vs 8-column format
+            if len(row) >= 8:
+                ts, name, method, url, status, latency, resp_body, err = (
+                    row[0],
+                    row[1],
+                    row[2],
+                    row[3],
+                    row[4],
+                    row[5],
+                    row[6],
+                    row[7],
+                )
+            else:
+                ts, name, method, url, status, latency, resp_body, err = (
+                    row[0],
+                    row[1],
+                    "GET",
+                    row[2],
+                    row[3],
+                    row[4],
+                    "",
+                    row[5],
+                )
+
             status_class = (
-                "success" if "SUCCESS" in row[3] or row[3] == "200" else "failure"
+                "success" if "SUCCESS" in status or status == "200" else "failure"
             )
+            badge_class = f"badge-{method.lower()}" if method else "badge-get"
+            escaped_body = html_lib.escape(resp_body) if resp_body else "<span style='color:#888;'>None</span>"
+            escaped_err = html_lib.escape(err)
+
             html_content += f"""
             <tr>
-                <td>{row[0]}</td>
-                <td>{row[1]}</td>
-                <td>{row[2]}</td>
-                <td class="{status_class}">{row[3]}</td>
-                <td>{row[4]}</td>
-                <td>{row[5]}</td>
+                <td>{ts}</td>
+                <td><strong>{html_lib.escape(name)}</strong></td>
+                <td><span class="badge {badge_class}">{method}</span></td>
+                <td><a href="{html_lib.escape(url)}" target="_blank" style="color: #0366d6; text-decoration: none;">{html_lib.escape(url)}</a></td>
+                <td class="{status_class}">{status}</td>
+                <td>{latency} ms</td>
+                <td><div class="response-box">{escaped_body}</div></td>
+                <td style="color: #dc3545;">{escaped_err}</td>
             </tr>
             """
 
@@ -234,7 +293,7 @@ def run_monitor():
     for api in config.get("apis", []):
         name = api["name"]
         url = api["url"]
-        method = api.get("method", "GET")
+        method = api.get("method", "GET").upper()
         payload = api.get("payload", None)  # <-- Extracted payload here
         expected_status = api["expected_status"]
         expected_key = api.get("expected_key", "")
@@ -243,6 +302,7 @@ def run_monitor():
         error_msg = ""
         status_result = "SUCCESS"
         response_time_ms = 0
+        response_body = ""
 
         try:
             start_time = datetime.now()
@@ -251,6 +311,10 @@ def run_monitor():
             )
             end_time = datetime.now()
             response_time_ms = int((end_time - start_time).total_seconds() * 1000)
+
+            # Capture response text (limit length for storage/display hygiene)
+            if response.text:
+                response_body = response.text[:1000]
 
             # Check HTTP Status Code
             if response.status_code != expected_status:
@@ -286,9 +350,11 @@ def run_monitor():
             {
                 "timestamp": timestamp,
                 "name": name,
+                "method": method,
                 "url": url,
                 "status": status_result,
                 "response_time_ms": response_time_ms,
+                "response_body": response_body,
                 "error": error_msg,
             }
         )
@@ -296,17 +362,17 @@ def run_monitor():
         # Trigger alerts if failed
         if "FAIL" in status_result:
             alert_text = (
-                f"API *{name}* failed!\nURL: {url}\nReason: {error_msg}\nTime:"
+                f"API *{name}* failed!\nMethod: {method}\nURL: {url}\nReason: {error_msg}\nTime:"
                 f" {timestamp}"
             )
             send_slack_alert(config.get("slack_webhook_url"), alert_text)
             send_email_alert(
                 config.get("email_alerts"), f"API Failure Alert: {name}", alert_text
             )
-            print(f"❌ [FAIL] {name} - {error_msg}")
+            print(f"❌ [FAIL] [{method}] {name} - {error_msg}")
         else:
             print(
-                f"✅ [OK] {name} responded in {response_time_ms}ms (Status:"
+                f"✅ [OK] [{method}] {name} responded in {response_time_ms}ms (Status:"
                 f" {response.status_code})"
             )
 
