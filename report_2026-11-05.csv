@@ -1,0 +1,22 @@
+Timestamp,API Name,URL,Status,Response Time (ms),Error
+2026-11-05 16:55:35,Fetch User (GET),https://jsonplaceholder.typicode.com/users/1,SUCCESS,462,
+2026-11-05 16:55:36,Create Post (POST),https://jsonplaceholder.typicode.com/posts,SUCCESS,917,
+2026-11-05 17:04:11,Docs: Update an existing pet.,/api/v3/pet,FAIL (Exception),0,Invalid URL '/api/v3/pet': No scheme supplied. Perhaps you meant https:///api/v3/pet?
+2026-11-05 17:04:11,Docs: Add a new pet to the store.,/api/v3/pet,FAIL (Exception),0,Invalid URL '/api/v3/pet': No scheme supplied. Perhaps you meant https:///api/v3/pet?
+2026-11-05 17:04:11,Docs: Finds Pets by status.,/api/v3/pet/findByStatus,FAIL (Exception),0,Invalid URL '/api/v3/pet/findByStatus': No scheme supplied. Perhaps you meant https:///api/v3/pet/findByStatus?
+2026-11-05 17:04:11,Docs: Finds Pets by tags.,/api/v3/pet/findByTags,FAIL (Exception),0,Invalid URL '/api/v3/pet/findByTags': No scheme supplied. Perhaps you meant https:///api/v3/pet/findByTags?
+2026-11-05 17:04:11,Docs: Find pet by ID.,/api/v3/pet/1,FAIL (Exception),0,Invalid URL '/api/v3/pet/1': No scheme supplied. Perhaps you meant https:///api/v3/pet/1?
+2026-11-05 17:04:11,Docs: Updates a pet in the store with form data.,/api/v3/pet/1,FAIL (Exception),0,Invalid URL '/api/v3/pet/1': No scheme supplied. Perhaps you meant https:///api/v3/pet/1?
+2026-11-05 17:04:11,Docs: Deletes a pet.,/api/v3/pet/1,FAIL (Exception),0,Invalid URL '/api/v3/pet/1': No scheme supplied. Perhaps you meant https:///api/v3/pet/1?
+2026-11-05 17:04:11,Docs: Uploads an image.,/api/v3/pet/1/uploadImage,FAIL (Exception),0,Invalid URL '/api/v3/pet/1/uploadImage': No scheme supplied. Perhaps you meant https:///api/v3/pet/1/uploadImage?
+2026-11-05 17:04:11,Docs: Returns pet inventories by status.,/api/v3/store/inventory,FAIL (Exception),0,Invalid URL '/api/v3/store/inventory': No scheme supplied. Perhaps you meant https:///api/v3/store/inventory?
+2026-11-05 17:04:11,Docs: Place an order for a pet.,/api/v3/store/order,FAIL (Exception),0,Invalid URL '/api/v3/store/order': No scheme supplied. Perhaps you meant https:///api/v3/store/order?
+2026-11-05 17:04:11,Docs: Find purchase order by ID.,/api/v3/store/order/1,FAIL (Exception),0,Invalid URL '/api/v3/store/order/1': No scheme supplied. Perhaps you meant https:///api/v3/store/order/1?
+2026-11-05 17:04:11,Docs: Delete purchase order by identifier.,/api/v3/store/order/1,FAIL (Exception),0,Invalid URL '/api/v3/store/order/1': No scheme supplied. Perhaps you meant https:///api/v3/store/order/1?
+2026-11-05 17:04:11,Docs: Create user.,/api/v3/user,FAIL (Exception),0,Invalid URL '/api/v3/user': No scheme supplied. Perhaps you meant https:///api/v3/user?
+2026-11-05 17:04:11,Docs: Creates list of users with given input array.,/api/v3/user/createWithList,FAIL (Exception),0,Invalid URL '/api/v3/user/createWithList': No scheme supplied. Perhaps you meant https:///api/v3/user/createWithList?
+2026-11-05 17:04:11,Docs: Logs user into the system.,/api/v3/user/login,FAIL (Exception),0,Invalid URL '/api/v3/user/login': No scheme supplied. Perhaps you meant https:///api/v3/user/login?
+2026-11-05 17:04:11,Docs: Logs out current logged in user session.,/api/v3/user/logout,FAIL (Exception),0,Invalid URL '/api/v3/user/logout': No scheme supplied. Perhaps you meant https:///api/v3/user/logout?
+2026-11-05 17:04:11,Docs: Get user by user name.,/api/v3/user/{username},FAIL (Exception),0,Invalid URL '/api/v3/user/{username}': No scheme supplied. Perhaps you meant https:///api/v3/user/{username}?
+2026-11-05 17:04:11,Docs: Update user resource.,/api/v3/user/{username},FAIL (Exception),0,Invalid URL '/api/v3/user/{username}': No scheme supplied. Perhaps you meant https:///api/v3/user/{username}?
+2026-11-05 17:04:11,Docs: Delete user resource.,/api/v3/user/{username},FAIL (Exception),0,Invalid URL '/api/v3/user/{username}': No scheme supplied. Perhaps you meant https:///api/v3/user/{username}?

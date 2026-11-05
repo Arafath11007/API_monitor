@@ -1,0 +1,23 @@
+{
+  "apis": [
+    {
+      "name": "Fetch User (GET)",
+      "url": "https://jsonplaceholder.typicode.com/users/1",
+      "method": "GET",
+      "expected_status": 200,
+      "expected_key": "email"
+    },
+    {
+      "name": "Create Post (POST)",
+      "url": "https://jsonplaceholder.typicode.com/posts",
+      "method": "POST",
+      "payload": {
+        "title": "API Monitoring Test",
+        "body": "Checking POST functionality",
+        "userId": 1
+      },
+      "expected_status": 201,
+      "expected_key": "id"
+    }
+  ]
+}
