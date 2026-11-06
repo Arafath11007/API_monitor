@@ -7,6 +7,20 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import requests
 
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    # Lightweight fallback parser if python-dotenv is not installed
+    env_path = os.path.join(os.path.dirname(__file__), ".env")
+    if os.path.exists(env_path):
+        with open(env_path, "r") as env_f:
+            for line in env_f:
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    k, v = line.split("=", 1)
+                    os.environ.setdefault(k.strip(), v.strip().strip("'\""))
+
 CONFIG_FILE = "config.json"
 CSV_REPORT = f"report_{datetime.now().strftime('%Y-%m-%d')}.csv"
 HTML_REPORT = f"report_{datetime.now().strftime('%Y-%m-%d')}.html"
@@ -29,6 +43,24 @@ def load_config():
             openapi_source = config.get("openapi_source", "").strip()
             apis_file = config.get("apis_file", "apis.json")
             payload_overrides = config.get("payload_overrides", {})
+
+    # Override/supplement secrets and settings with environment variables (.env)
+    slack_url = os.environ.get("SLACK_WEBHOOK_URL", slack_url)
+    if os.environ.get("EMAIL_ALERTS_ENABLED") is not None:
+        email_config["enabled"] = os.environ.get("EMAIL_ALERTS_ENABLED", "").lower() in ("true", "1", "yes")
+    if os.environ.get("SMTP_SERVER"):
+        email_config["smtp_server"] = os.environ.get("SMTP_SERVER")
+    if os.environ.get("SMTP_PORT"):
+        try:
+            email_config["smtp_port"] = int(os.environ.get("SMTP_PORT"))
+        except ValueError:
+            pass
+    if os.environ.get("SENDER_EMAIL"):
+        email_config["sender_email"] = os.environ.get("SENDER_EMAIL")
+    if os.environ.get("SENDER_PASSWORD"):
+        email_config["sender_password"] = os.environ.get("SENDER_PASSWORD")
+    if os.environ.get("RECEIVER_EMAIL"):
+        email_config["receiver_email"] = os.environ.get("RECEIVER_EMAIL")
 
     # 2. Determine source based on openapi_source value
     openapi_data = None

@@ -1,15 +1,6 @@
 {
   "apis_file": "apis.json",
   "openapi_source": "https://petstore3.swagger.io/api/v3/openapi.json",
-  "slack_webhook_url": "",
-  "email_alerts": {
-    "enabled": false,
-    "smtp_server": "smtp.gmail.com",
-    "smtp_port": 587,
-    "sender_email": "your_email@gmail.com",
-    "sender_password": "your_app_password",
-    "receiver_email": "admin@myproject.com"
-  },
   "payload_overrides": {
     "/pet": {
       "id": 99991,
