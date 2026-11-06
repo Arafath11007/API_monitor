@@ -9,5 +9,40 @@
     "sender_email": "your_email@gmail.com",
     "sender_password": "your_app_password",
     "receiver_email": "admin@myproject.com"
+  },
+  "payload_overrides": {
+    "/pet": {
+      "id": 99991,
+      "name": "HealthCheckPet",
+      "photoUrls": [
+        "https://example.com/pet.jpg"
+      ],
+      "status": "available"
+    },
+    "/user": {
+      "id": 1001,
+      "username": "user1",
+      "firstName": "Health",
+      "lastName": "Check",
+      "email": "user1@example.com",
+      "password": "password123",
+      "userStatus": 1
+    },
+    "/user/createWithList": [
+      {
+        "id": 1002,
+        "username": "user2",
+        "firstName": "Health2",
+        "lastName": "Check2",
+        "email": "user2@example.com"
+      }
+    ],
+    "/store/order": {
+      "id": 1,
+      "petId": 1,
+      "quantity": 1,
+      "status": "placed",
+      "complete": true
+    }
   }
 }

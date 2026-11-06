@@ -1,0 +1,36 @@
+# Python bytecode & cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual Environments
+venv/
+.venv/
+env/
+ENV/
+
+# Reports and Output logs (HTML & CSV)
+*.csv
+*.html
+report_*.csv
+report_*.html
+reports/
+logs/
+*.log
+
+# Testing & Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDE / Editor configs
+.vscode/
+.idea/
+.qodo/
+*.swp
+*~
+.DS_Store
+
+# Environment Secrets
+.env

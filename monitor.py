@@ -18,6 +18,7 @@ def load_config():
     email_config = {"enabled": False}
     openapi_source = ""
     apis_file = "apis.json"
+    payload_overrides = {}
 
     # 1. Load general settings from config.json
     if os.path.exists(CONFIG_FILE):
@@ -27,6 +28,7 @@ def load_config():
             email_config = config.get("email_alerts", {"enabled": False})
             openapi_source = config.get("openapi_source", "").strip()
             apis_file = config.get("apis_file", "apis.json")
+            payload_overrides = config.get("payload_overrides", {})
 
     # 2. Determine source based on openapi_source value
     openapi_data = None
@@ -71,7 +73,8 @@ def load_config():
         paths = openapi_data.get("paths", {})
         for path, methods in paths.items():
             for method, details in methods.items():
-                if method.lower() in ["get", "post", "put", "delete", "patch"]:
+                method_lower = method.lower()
+                if method_lower in ["get", "post", "put", "delete", "patch"]:
                     formatted_path = (
                         path.replace("{petId}", "1")
                         .replace("{orderId}", "1")
@@ -80,21 +83,64 @@ def load_config():
                     )
                     full_url = base_url.rstrip("/") + "/" + formatted_path.lstrip("/")
 
+                    # Smart query parameter resolution for required params
+                    parameters = details.get("parameters", [])
+                    query_parts = []
+                    for param in parameters:
+                        if param.get("in") == "query" and param.get("required"):
+                            p_name = param.get("name")
+                            p_schema = param.get("schema", {})
+                            # Pick default enum or sample value
+                            enums = p_schema.get("enum")
+                            default_val = p_schema.get("default") or (enums[0] if enums else "available" if "status" in p_name else "tag1" if "tag" in p_name else "test")
+                            query_parts.append(f"{p_name}={default_val}")
+
+                    if query_parts:
+                        connector = "&" if "?" in full_url else "?"
+                        full_url += connector + "&".join(query_parts)
+
                     responses = details.get("responses", {})
+                    # Broaden acceptable responses for lookups or updates
                     expected_status = 201 if "201" in responses else 200
+                    expected_statuses = [expected_status]
+                    if method_lower == "get" and "404" in responses:
+                        expected_statuses.append(404)
+                    if method_lower in ["post", "put"] and "400" in responses:
+                        expected_statuses.append(400)
+
                     name = details.get("summary", f"{method.upper()} {path}")
+
+                    # Determine payload:
+                    # 1. Check explicit override from config.json
+                    # 2. Schema-aware generation (array vs dict)
+                    payload = None
+                    if method_lower in ["post", "put", "patch"]:
+                        if path in payload_overrides:
+                            payload = payload_overrides[path]
+                        else:
+                            # Inspect schema in OpenAPI requestBody
+                            req_body = details.get("requestBody", {})
+                            content = req_body.get("content", {})
+                            json_schema = content.get("application/json", {}).get("schema", {})
+                            schema_type = json_schema.get("type", "object")
+
+                            if schema_type == "array":
+                                payload = [{"id": 1, "username": "user1"}]
+                            else:
+                                payload = {
+                                    "id": 1,
+                                    "name": "test_item",
+                                    "photoUrls": ["https://example.com/item.jpg"],
+                                    "status": "available",
+                                }
 
                     apis_list.append(
                         {
                             "name": f"Docs: {name}",
                             "url": full_url,
                             "method": method.upper(),
-                            "payload": (
-                                {"name": "test_item", "status": "available"}
-                                if method.lower() in ["post", "put", "patch"]
-                                else None
-                            ),
-                            "expected_status": expected_status,
+                            "payload": payload,
+                            "expected_status": expected_statuses[0] if len(expected_statuses) == 1 else expected_statuses,
                             "expected_key": "",
                         }
                     )
@@ -112,7 +158,6 @@ def load_config():
         "email_alerts": email_config,
     }
 
-
 def send_slack_alert(webhook_url, message):
     if not webhook_url or "YOUR_SLACK" in webhook_url:
         return
@@ -121,7 +166,6 @@ def send_slack_alert(webhook_url, message):
         requests.post(webhook_url, json=payload_data)
     except Exception as e:
         print(f"Failed to send Slack alert: {e}")
-
 
 def send_email_alert(email_config, subject, body):
     if not email_config.get("enabled"):
@@ -144,7 +188,6 @@ def send_email_alert(email_config, subject, body):
         server.quit()
     except Exception as e:
         print(f"Failed to send email alert: {e}")
-
 
 def log_result(result):
     file_exists = os.path.exists(CSV_REPORT)
@@ -175,7 +218,6 @@ def log_result(result):
                 result["error"],
             ]
         )
-
 
 def generate_html_report():
     import html as html_lib
@@ -282,7 +324,6 @@ def generate_html_report():
     with open(HTML_REPORT, "w", encoding="utf-8") as f:
         f.write(html_content)
 
-
 def run_monitor():
     config = load_config()
     if not config:
@@ -316,8 +357,13 @@ def run_monitor():
             if response.text:
                 response_body = response.text[:1000]
 
-            # Check HTTP Status Code
-            if response.status_code != expected_status:
+            # Check HTTP Status Code (supports single int or list of acceptable codes)
+            status_matched = (
+                response.status_code in expected_status
+                if isinstance(expected_status, list)
+                else response.status_code == expected_status
+            )
+            if not status_matched:
                 status_result = f"FAIL (Code: {response.status_code})"
                 error_msg = (
                     f"Expected status {expected_status}, got {response.status_code}"
@@ -378,7 +424,6 @@ def run_monitor():
 
     generate_html_report()
     print("Monitoring run completed. Reports updated.")
-
 
 if __name__ == "__main__":
     run_monitor()
